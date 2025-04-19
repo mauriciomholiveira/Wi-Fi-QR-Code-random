@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Senha Wi-Fi com QR Code</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+
+    .container {
+      background: white;
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    #preview, #previewManual {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    canvas {
+      margin-top: 10px;
+      max-width: 100%;
+    }
+
+    .info {
+      font-size: 0.9em;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    hr {
+      margin: 40px 0 20px;
+    }
+
+    h3 {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🔐 Gerar Senha Aleatória + QR Code</h2>
+
+    <label>SSID (nome da rede):</label>
+    <input type="text" id="ssid" placeholder="Ex: IgrejaVoluntarios">
+
+    <label>Comprimento da senha:</label>
+    <input type="number" id="length" value="12" min="8" max="64">
+
+    <label><input type="checkbox" id="upper" checked> Incluir MAIÚSCULAS <span class="info">(A-Z)</span></label>
+    <label><input type="checkbox" id="lower" checked> Incluir minúsculas <span class="info">(a-z)</span></label>
+    <label><input type="checkbox" id="numbers" checked> Incluir números <span class="info">(0-9)</span></label>
+    <label><input type="checkbox" id="symbols" checked> Incluir caracteres especiais <span class="info">(!@#...)</span></label>
+
+    <button onclick="gerar()">Gerar QR Code + Senha</button>
+
+    <div id="preview">
+      <h3>QR Code Gerado:</h3>
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <hr>
+
+    <h2>✍️ Usar Senha Manual</h2>
+
+    <label>SSID (nome da rede):</label>
+    <input type="text" id="manualSsid" placeholder="Ex: IgrejaVoluntarios">
+
+    <label>Senha já existente:</label>
+    <input type="text" id="manualPassword" placeholder="Digite a senha já existente">
+
+    <button onclick="gerarManual()">Gerar QR Code com Senha Manual</button>
+
+    <div id="previewManual">
+      <h3>QR Code Gerado (manual):</h3>
+      <canvas id="canvasManual"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script>
+    function gerarSenha(length, upper, lower, numbers, symbols) {
+      let charset = '';
+      if (upper) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (lower) charset += 'abcdefghijklmnopqrstuvwxyz';
+      if (numbers) charset += '0123456789';
+      if (symbols) charset += '!@#$%&*_-+=()[]{}/.,';
+
+      if (!charset) return '';
+
+      let senha = '';
+      for (let i = 0; i < length; i++) {
+        senha += charset.charAt(Math.floor(Math.random() * charset.length));
+      }
+      return senha;
+    }
+
+    function gerar() {
+      const ssid = document.getElementById('ssid').value.trim();
+      const length = parseInt(document.getElementById('length').value);
+      const upper = document.getElementById('upper').checked;
+      const lower = document.getElementById('lower').checked;
+      const numbers = document.getElementById('numbers').checked;
+      const symbols = document.getElementById('symbols').checked;
+
+      if (!ssid) {
+        alert("Por favor, insira o nome da rede (SSID).");
+        return;
+      }
+
+      const senha = gerarSenha(length, upper, lower, numbers, symbols);
+      if (!senha) {
+        alert("Selecione pelo menos um tipo de caractere.");
+        return;
+      }
+
+      alert("Senha gerada: " + senha);
+
+      const qrTexto = `WIFI:S:${ssid};T:WPA;P:${senha};;`;
+
+      const canvas = document.getElementById('canvas');
+      QRCode.toCanvas(canvas, qrTexto, { errorCorrectionLevel: 'H' }, function (error) {
+        if (error) {
+          console.error(error);
+          alert("Erro ao gerar QR Code.");
+          return;
+        }
+
+        setTimeout(() => {
+          const link = document.createElement('a');
+          link.download = `wifi_${ssid}_gerado.jpg`;
+          link.href = canvas.toDataURL("image/jpeg");
+          link.click();
+        }, 300);
+      });
+    }
+
+    function gerarManual() {
+      const ssid = document.getElementById('manualSsid').value.trim();
+      const senha = document.getElementById('manualPassword').value;
+
+      if (!ssid || !senha) {
+        alert("Preencha o SSID e a senha para gerar o QR Code.");
+        return;
+      }
+
+      const qrTexto = `WIFI:S:${ssid};T:WPA;P:${senha};;`;
+      const canvasManual = document.getElementById('canvasManual');
+
+      QRCode.toCanvas(canvasManual, qrTexto, { errorCorrectionLevel: 'H' }, function (error) {
+        if (error) {
+          console.error(error);
+          alert("Erro ao gerar QR Code.");
+          return;
+        }
+
+        setTimeout(() => {
+          const link = document.createElement('a');
+          link.download = `wifi_${ssid}_manual.jpg`;
+          link.href = canvasManual.toDataURL("image/jpeg");
+          link.click();
+        }, 300);
+      });
+    }
+  </script>
+</body>
+</html>
